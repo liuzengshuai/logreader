@@ -1,0 +1,46 @@
+mybatis 3.5.6
+java    11.0.10
+mariadb 10.3.27
+CentOS  8
+
+
+
+
+
+
+
+mariadb  sql
+ create database logreader;
+ select password('myPassword');
+ create user 'logreader'@'localhost' identified by password '*AD3ADAF45AA29B98635023064D912D20A4012606';
+ grant all on logreader.* to 'logreader'@'localhost' require none;
+ flush privileges;
+
+
+
+
+证书 openssl + keytool
+
+openssl生成ca密钥和证书
+openssl genrsa -des3 -out ca-key.pem 2048 
+openssl req -new -x509 -nodes -days 36500 -key ca-key.pem -out ca-cert.pem
+
+openssl生成服务器密钥和证书请求文件
+openssl req -newkey rsa:2048 -days 36500 -nodes -keyout server-key.pem -out server-req.pem
+openssl rsa -in server-key.pem -out server-key.pem
+根据ca密钥、证书、服务器证书请求文件生成服务器证书
+openssl x509 -req -in server-req.pem -days 36500 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out server-cert.pem
+
+openssl生成客户端密钥和证书请求文件
+openssl req -newkey rsa:2048 -days 36500 -nodes -keyout client-key.pem -out client-req.pem
+openssl rsa -in client-key.pem -out client-key.pem
+根据ca密钥、证书、服务器证书请求文件生成服务器证书
+openssl x509 -req -in client-req.pem -days 36500 -CA ca-cert.pem -CAkey ca-key.pem -set_serial 01 -out client-cert.pem
+
+openssl服务器私钥证书导出到keystore
+openssl pkcs12 -export -clcerts -name logreaderserver -inkey server-key.pem -in server-cert.pem -out server.keystore
+openssl客户端私钥证书导出keystore
+openssl pkcs12 -export -clcerts -name logreaderclient -inkey client-key.pem -in client-cert.pem -out client.keystore
+
+keytool将ca证书导出到keystore
+keytool -importcert -trustcacerts -alias logreader -file ca-cert.pem -keystore ca.keystore
